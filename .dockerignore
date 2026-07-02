@@ -1,0 +1,6 @@
+.git
+.gitignore
+obj
+ft_traceroute
+*.o
+*.d
