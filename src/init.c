@@ -5,6 +5,7 @@
 #include <netdb.h>
 #include <getopt.h>
 #include <arpa/inet.h>
+#include <string.h>
 
 int initOptions(t_options *options, int argc, char **argv)
 {
@@ -56,16 +57,30 @@ int initOptions(t_options *options, int argc, char **argv)
 			}
 			case 'N':
 			{
-				//
-				// To be continued...
-				//
+				char* endPtr;
+				long value = strtol(optarg, &endPtr, 10);
+				if (*endPtr != '\0')
+				{
+					badArgument(argv[optind - 1], optarg, optind - 1);
+				}
+
+				options->simQueries = (uint8_t)value;
 				break;
 			}
 			case 'm':
 			{
-				//
-				// To be continued...
-				//
+				char* endPtr;
+				uint64_t value = strtol(optarg, &endPtr, 10);
+				if (*endPtr != '\0')
+				{
+					badArgument(argv[optind - 1], optarg, optind - 1);
+				}
+				if (value > 255)
+				{
+					argumentTooBigError(argv[optind - 1], 255);
+				}
+
+				options->maxHops = (uint8_t)value;
 				break;
 			}
 			case 'p':

@@ -38,3 +38,9 @@ void fatalError(char *message)
 	fprintf(stderr, "Fatal error: %s\n", message);
 	exit(1);
 }
+
+void argumentTooBigError(char *option, long limit)
+{
+	fprintf(stderr, "`%s' argument cannot be more than %ld\n", option, limit);
+	exit(2);
+}

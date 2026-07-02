@@ -62,6 +62,7 @@ void argumentRequiredError(char *option, int index);
 void badArgument(char *option, char *argument, int index);
 void extraArgumentError(char *argument, int index);
 void fatalError(char *message);
+void argumentTooBigError(char *option, long limit);
 
 // Output
 void announceHelp();
