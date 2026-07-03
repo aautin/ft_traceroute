@@ -25,7 +25,11 @@ int initOptions(t_options *options, int argc, char **argv)
 		.maxHops    = 30,
 		.port       = 33434,
 		.queries    = 3,
-		.wait       = { .tv_sec = 5, .tv_usec = 0 }
+		.wait       = {
+			.max  = { .tv_sec = 5, .tv_usec = 0 },
+			.here = 3,
+			.near = 10
+		}
 	};
 
 	while (true)
@@ -58,10 +62,10 @@ int initOptions(t_options *options, int argc, char **argv)
 			case 'N':
 			{
 				char* endPtr;
-				long value = strtol(optarg, &endPtr, 10);
+				long  value = strtol(optarg, &endPtr, 10);
 				if (*endPtr != '\0')
 				{
-					badArgument(argv[optind - 1], optarg, optind - 1);
+					badArgument(argv[optind - 2], optarg, optind - 1);
 				}
 
 				options->simQueries = (uint8_t)value;
@@ -69,15 +73,15 @@ int initOptions(t_options *options, int argc, char **argv)
 			}
 			case 'm':
 			{
-				char* endPtr;
+				char*    endPtr;
 				uint64_t value = strtol(optarg, &endPtr, 10);
 				if (*endPtr != '\0')
 				{
-					badArgument(argv[optind - 1], optarg, optind - 1);
+					badArgument(argv[optind - 2], optarg, optind - 1);
 				}
 				if (value > 255)
 				{
-					argumentTooBigError(argv[optind - 1], 255);
+					argumentTooBigError(argv[optind - 2], 255);
 				}
 
 				options->maxHops = (uint8_t)value;
@@ -85,27 +89,73 @@ int initOptions(t_options *options, int argc, char **argv)
 			}
 			case 'p':
 			{
-				//
-				// To be continued...
-				//
+				char*    endPtr;	
+				uint64_t value = strtol(optarg, &endPtr, 10);
+				if (*endPtr != '\0')
+				{
+					badArgument(argv[optind - 2], optarg, optind - 1);
+				}
+				options->port = (uint16_t)value;
 				break;
 			}
 			case 'q':
 			{
-				//
-				// To be continued...
-				//
+				char*    endPtr;
+				uint64_t value = strtol(optarg, &endPtr, 10);
+				if (*endPtr != '\0')
+				{
+					badArgument(argv[optind - 2], optarg, optind - 1);
+				}
+				if (value > 10)
+				{
+					argumentTooBigError(argv[optind - 2], 10);
+				}
+	
+				options->maxHops = (uint8_t)value;
 				break;
 			}
 			case 'w':
 			{
-				//
-				// To be continued...
-				//
+				char* maxPtr;
+				double max = strtod(optarg, &maxPtr);
+				options->wait.max.tv_sec  = (time_t)max;
+				options->wait.max.tv_usec = (suseconds_t)((max - options->wait.max.tv_sec) * 1e6);
+				if (*maxPtr != '\0')
+				{
+					if (*maxPtr == ',')
+					{
+						char* herePtr;
+						options->wait.here = (uint8_t)strtol(++maxPtr, &herePtr, 10);
+						if (*herePtr != '\0')
+						{
+							if (*herePtr == ',')
+							{
+								char* nearPtr;
+								options->wait.near = (uint8_t)strtol(++herePtr, &nearPtr, 10);
+								if (*nearPtr != '\0')
+								{
+									badArgument(argv[optind - 2], optarg, optind - 1);
+								}
+							}
+							else
+							{
+								badArgument(argv[optind - 2], optarg, optind - 1);
+							}
+						}
+					}
+					else
+					{
+						badArgument(argv[optind - 2], optarg, optind - 1);
+					}
+				}
 				break;
 			}
 		}
 	}
+	
+	#ifdef DEBUG
+		announceOptions(options);
+	#endif
 
 	return optind;
 }
@@ -150,6 +200,11 @@ void initHost(t_host *host, int nextIndex, int argc, char **argv)
 	inet_ntop(AF_INET, &((struct sockaddr_in*)info->ai_addr)->sin_addr,
 		host->ipName, sizeof(host->ipName));
 	
+	#ifdef DEBUG
+		#include <stdio.h>
+		printf("Resolved host: %s -> %s\n", host->name, host->ipName);
+	#endif
+
 	freeaddrinfo(info);
 }
 
@@ -201,6 +256,9 @@ void initSockets(t_context *context)
 	// we can see the IP header and its payload
 	//
 
+	//
+	// DGRAM UDP socket is used here to send the UDP packets (with incrementing TTL)
+	//
 	context->udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (context->udpSocket < 0)
 	{
@@ -209,7 +267,13 @@ void initSockets(t_context *context)
 	}
 
 	//
+	// RAW ICMP socket is used here to receive ICMP messages (the replies)
+	// From the intermediary routers : [T11 C0]  Time Exceeded (TTL = 0) -> Time of it
+	//                                 [T3  C0]  Network unreachable     -> !N
+	//                                 [T3  C1]  Host unreachable		 -> !H
+	//								   [T3  C2]  Protocol unreachable    -> !P
 	//
+	// From	the destination host :     [T3  C3]  Port unreachable
 	//
 	context->icmpSocket = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 	if (context->icmpSocket < 0)

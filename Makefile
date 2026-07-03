@@ -23,7 +23,7 @@ DOCKER_IMAGE	:=	ft_traceroute
 DOCKER_WORKDIR	:=	/workspace
 DOCKER_RUN_OPTS	:=	--rm -it --cap-add=NET_RAW
 
-.PHONY: all clean fclean re docker-build docker-make docker-shell
+.PHONY: all clean fclean re debug docker-build docker-make docker-shell
 
 all: $(NAME)
 
@@ -46,6 +46,9 @@ fclean: clean
 	rm -f $(NAME) $(SHORTNAME)
 
 re: fclean all
+
+debug: CFLAGS += -DDEBUG
+debug: re
 
 docker-build:
 	$(DOCKER) build -t $(DOCKER_IMAGE) .

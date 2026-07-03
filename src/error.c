@@ -23,7 +23,7 @@ void argumentRequiredError(char *option, int index)
 void badArgument(char *option, char *argument, int index)
 {
 	fprintf(stderr, "Cannot handle `%s' option with arg `%s' (argc %d)\n",
-		argument, option, index);
+		option, argument, index);
 	exit(2);
 }
 

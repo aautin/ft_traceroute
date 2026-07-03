@@ -7,13 +7,20 @@
 #include <netinet/in.h>
 
 // -------------- Structures, Enums, Typedefs -------------- //
+typedef struct s_wait
+{
+	struct timeval max;
+	uint8_t        here;
+	uint8_t        near;
+} t_wait;
+
 typedef struct s_options
 {
-	uint8_t		   simQueries;
-	uint8_t		   maxHops;
-	uint16_t	   port;
-	uint8_t		   queries;
-	struct timeval wait;
+	uint8_t	 simQueries;
+	uint8_t	 maxHops;
+	uint16_t port;
+	uint8_t	 queries;
+	t_wait   wait;
 } t_options;
 
 typedef struct s_host
@@ -33,8 +40,9 @@ typedef struct s_probe
 
 typedef struct s_rounds
 {
-	t_probe *probes;
-	uint8_t  ttl;
+	t_probe*       probes;
+	uint8_t        ttl;
+	struct timeval waitTime;
 } t_rounds;
 
 typedef struct s_context
@@ -66,3 +74,4 @@ void argumentTooBigError(char *option, long limit);
 
 // Output
 void announceHelp();
+void announceOptions(t_options *options);
