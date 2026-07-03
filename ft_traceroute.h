@@ -42,7 +42,6 @@ typedef struct s_rounds
 {
 	t_probe*       probes;
 	uint8_t        ttl;
-	struct timeval waitTime;
 } t_rounds;
 
 typedef struct s_context
@@ -62,6 +61,7 @@ typedef struct s_context
 int  initOptions(t_options *options, int argc, char **argv);
 void initHost(t_host *host, int nextIndex, int argc, char **argv);
 void initSockets(t_context *context);
+void initProbes(t_rounds **rounds, t_options *options);
 
 // Error
 void missingHostError();

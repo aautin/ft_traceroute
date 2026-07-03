@@ -282,3 +282,22 @@ void initSockets(t_context *context)
 		exit(EXIT_FAILURE);
 	}
 }
+
+void initProbes(t_rounds **rounds, t_options *options)
+{
+	*rounds = malloc(sizeof(t_rounds) * options->maxHops);
+	if (!*rounds)
+	{
+		fatalError("malloc()");
+	}
+
+	for (uint8_t i = 0; i < options->maxHops; ++i)
+	{
+		(*rounds)[i].ttl = i + 1;
+		(*rounds)[i].probes = malloc(sizeof(t_probe) * options->queries);
+		if (!(*rounds)[i].probes)
+		{
+			fatalError("malloc()");
+		}
+	}
+}
