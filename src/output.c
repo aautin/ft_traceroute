@@ -2,6 +2,13 @@
 
 #include <stdio.h>
 
+static t_outputStatus outputStatus = { .hopIndex = 0, .queryIndex = 0 };
+
+t_outputStatus getOutputStatus()
+{
+	return outputStatus;
+}
+
 void announceHelp()
 {
 	printf("Usage: ./ft_traceroute [options] <host>\n");

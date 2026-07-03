@@ -7,6 +7,12 @@
 #include <netinet/in.h>
 
 // -------------- Structures, Enums, Typedefs -------------- //
+typedef struct s_outputStatus
+{
+	uint8_t hopIndex;
+	uint8_t queryIndex;
+} t_outputStatus;
+
 typedef struct s_wait
 {
 	struct timeval max;
@@ -30,12 +36,19 @@ typedef struct s_host
 	char             ipName[INET_ADDRSTRLEN];
 } t_host;
 
+enum e_status
+{
+	WAITING_TO_SEND,
+	WAITING_FOR_REPLY,
+	RECEIVED_REPLY,
+};
+
 typedef struct s_probe
 {
 	uint16_t       port;
 	struct timeval sendTime;
 
-	bool     received;
+	enum e_status status;
 } t_probe;
 
 typedef struct s_rounds
@@ -73,5 +86,13 @@ void fatalError(char *message);
 void argumentTooBigError(char *option, long limit);
 
 // Output
-void announceHelp();
-void announceOptions(t_options *options);
+t_outputStatus getOutputStatus();
+void           announceHelp();
+void           announceOptions(t_options *options);
+
+// Utils
+uint64_t getWaitingForReplyNumber(t_rounds *rounds, t_options options);
+
+// Packet
+void readReplies(t_context *context);
+void sendNextProbe(t_context *context, uint32_t nextProbeIndex);

@@ -1,7 +1,9 @@
 NAME        := ft_traceroute
 
 FILES		:=	\
+				packet.c \
 				error.c  \
+				utils.c  \
 				init.c   \
 				output.c \
 				main.c

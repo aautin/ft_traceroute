@@ -299,5 +299,10 @@ void initProbes(t_rounds **rounds, t_options *options)
 		{
 			fatalError("malloc()");
 		}
+
+		for (uint8_t j = 0; j < options->queries; ++j)
+		{
+			(*rounds)[i].probes[j].status = WAITING_TO_SEND;
+		}
 	}
 }
