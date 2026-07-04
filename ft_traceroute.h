@@ -39,13 +39,13 @@ enum e_status
 	TIME_EXCEEDED,
 	
 	// Error from an intermediary router
-	NETWORK_UNREACHABLE,
-	HOST_UNREACHABLE,
-	PROTOCOL_UNREACHABLE,
-	UNKNOWN_ERROR,
+	NETWORK_UNREACHABLE,                  // !N
+	HOST_UNREACHABLE,                     // !H
+	PROTOCOL_UNREACHABLE,                 // !P
+	UNKNOWN_ERROR,                        // !?
 
 	// No timely response
-	TIMEOUT,
+	TIMEOUT,                              // *
 
 	// Reply from the destination host
 	PORT_UNREACHABLE,
@@ -58,7 +58,7 @@ typedef struct s_probe
 	struct timeval receiveTime;
 
 	enum e_status status;
-	char          statusIp[INET_ADDRSTRLEN];
+	char          hopIpName[INET_ADDRSTRLEN];
 } t_probe;
 
 typedef struct s_rounds
