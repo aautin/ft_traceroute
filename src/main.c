@@ -18,16 +18,17 @@ static void traceroute(t_context *context)
 	while (1)
 	{
 		readReplies(context);
+		updateOutput(context);
 
-		t_outputStatus outputStatus = getOutputStatus();
-		uint64_t       waitingForReply = getWaitingForReplyNumber(context->rounds, context->options);
-		//
-		// Break if output is up to date and no probe are waiting for reply
-		//
-
+		if (isFinished(context->rounds, context->options) && isOutputUpdated(context->rounds, context->options))
+		{
+			break;
+		}
+		
 		//
 		// Send new probes if we have not reached the simultaneous limit
 		//
+		uint64_t waitingForReply = getWaitingForReplyNumber(context->rounds, context->options);
 		while (waitingForReply < context->options.simQueries)
 		{
 			sendNextProbe(context, nextProbeIndex);
