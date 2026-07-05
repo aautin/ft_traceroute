@@ -197,8 +197,8 @@ void initHost(t_host *host, int nextIndex, int argc, char **argv)
 	// Store the resolved IP address and convert it to a string representation
 	//
 	host->address = *info->ai_addr;
-	inet_ntop(AF_INET, &((struct sockaddr_in*)info->ai_addr)->sin_addr,
-		host->ipName, sizeof(host->ipName));
+	getnameinfo(info->ai_addr, info->ai_addrlen,
+		host->ipName, sizeof(host->ipName), NULL, 0, NI_NUMERICHOST);
 	
 	#ifdef DEBUG
 		#include <stdio.h>

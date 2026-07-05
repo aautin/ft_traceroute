@@ -58,7 +58,8 @@ void readReplies(t_context *context)
 			icmp->code == ICMP_NET_UNREACH ? NETWORK_UNREACHABLE :
 			icmp->code == ICMP_HOST_UNREACH ? HOST_UNREACHABLE :
 			icmp->code == ICMP_PROT_UNREACH ? PROTOCOL_UNREACHABLE : UNKNOWN_ERROR) : UNKNOWN_ERROR;
-		inet_ntop(AF_INET, &from.sin_addr, probe->hopIpName, sizeof(probe->hopIpName));
+		getnameinfo((struct sockaddr *)&from, sizeof(from), probe->hopIpName,
+			sizeof(probe->hopIpName), NULL, 0, NI_NUMERICHOST);
 		gettimeofday(&context->rounds[roundI].probes[probeI].receiveTime, NULL);
 
 		#ifdef DEBUG
