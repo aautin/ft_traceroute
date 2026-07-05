@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <netinet/in.h>
 
+// -------------- Structures, Enums, Typedefs -------------- //
 
 typedef struct s_wait
 {
@@ -64,7 +65,6 @@ typedef struct s_probe
 typedef struct s_rounds
 {
 	t_probe* probes;
-	uint8_t  ttl;
 } t_rounds;
 
 typedef struct s_context
@@ -102,7 +102,9 @@ void announceOptions(t_options *options);
 void updateOutput(const t_context *context);
 
 // Utils
-uint64_t getWaitingForReplyNumber(t_rounds *rounds, t_options options);
+struct timeval timeval_mul(struct timeval tv, double factor);
+uint64_t       getWaitingForReplyNumber(t_rounds *rounds, t_options options);
+struct timeval getTimeout(const t_options options, t_rounds *rounds, uint8_t roundI);
 
 // Packet
 void readReplies(t_context *context);

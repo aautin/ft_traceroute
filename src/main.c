@@ -12,12 +12,32 @@ static void clear(t_context *context)
 	close(context->udpSocket);
 }
 
+static void applyTimeouts(t_context *context)
+{
+	struct timeval now;
+	gettimeofday(&now, NULL);
+
+	for (uint8_t i = 0; i < context->options.maxHops; ++i)
+	{
+		struct timeval timeout = getTimeout(context->options, context->rounds, i);
+		for (uint8_t j = 0; j < context->options.queries; ++j)
+		{
+			t_probe* probe = &context->rounds[i].probes[j];
+			if (probe->status == WAITING_FOR_REPLY && isTimeout(now, probe->sendTime, timeout))
+			{
+				probe->status = TIMEOUT;
+			}
+		}
+	}
+}
+
 static void traceroute(t_context *context)
 {
 	uint32_t nextProbeIndex = 0;
 	while (1)
 	{
 		readReplies(context);
+		applyTimeouts(context);
 		updateOutput(context);
 
 		if (isFinished(context->rounds, context->options) && isOutputUpdated(context->rounds, context->options))

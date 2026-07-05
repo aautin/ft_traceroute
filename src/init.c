@@ -293,7 +293,6 @@ void initProbes(t_rounds **rounds, t_options *options)
 
 	for (uint8_t i = 0; i < options->maxHops; ++i)
 	{
-		(*rounds)[i].ttl = i + 1;
 		(*rounds)[i].probes = malloc(sizeof(t_probe) * options->queries);
 		if (!(*rounds)[i].probes)
 		{
