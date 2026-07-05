@@ -1,6 +1,11 @@
 #include "ft_traceroute.h"
 
 #include <stdio.h>
+#include <string.h>
+#include <arpa/inet.h>
+#include <netinet/ip.h>
+#include <netinet/udp.h>
+#include <netdb.h>
 
 // -------------- Structures, Enums, Typedefs -------------- //
 typedef struct s_outputStatus
@@ -20,21 +25,6 @@ enum e_outputMode
 static t_outputStatus gNext = { .roundI = 0, .queryI = 0 };
 
 // -------------- Functions -------------- //
-bool isOutputUpdated(const t_rounds *rounds, const t_options options)
-{
-	for (uint8_t i = gNext.roundI; i < options.maxHops; ++i)
-	{
-		for (uint8_t j = (i == gNext.roundI ? gNext.queryI : 0); j < options.queries; ++j)
-		{
-			enum e_status status = rounds[i].probes[j].status;
-			if (status != WAITING_TO_SEND && status != WAITING_FOR_REPLY)
-			{
-				return false;
-			}
-		}
-	}
-	return true;
-}
 
 void announceHelp()
 {
@@ -67,6 +57,32 @@ static float getTransportTimeMs(const struct timeval *send, const struct timeval
 		   (float)(receive->tv_usec - send->tv_usec) / 1000.0f;
 }
 
+static const char *getReverseDnsName(const char *ipName, char *buffer, size_t bufferSize)
+{
+	struct sockaddr_storage ss;
+	memset(&ss, 0, sizeof(ss));
+
+	if (strchr(ipName, ':') != NULL)
+	{
+		struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)&ss;
+		addr6->sin6_family = AF_INET6;
+		if (inet_pton(AF_INET6, ipName, &addr6->sin6_addr) != 1)
+			return ipName;
+		if (getnameinfo((struct sockaddr *)addr6, sizeof(*addr6), buffer, (socklen_t)bufferSize, NULL, 0, NI_NAMEREQD) == 0)
+			return buffer;
+	}
+	else
+	{
+		struct sockaddr_in *addr4 = (struct sockaddr_in *)&ss;
+		addr4->sin_family = AF_INET;
+		if (inet_pton(AF_INET, ipName, &addr4->sin_addr) != 1)
+			return ipName;
+		if (getnameinfo((struct sockaddr *)addr4, sizeof(*addr4), buffer, (socklen_t)bufferSize, NULL, 0, NI_NAMEREQD) == 0)
+			return buffer;
+	}
+	return ipName;
+}
+
 static bool equalToLastAddress(const t_rounds *rounds, uint8_t roundI, uint8_t queryI)
 {
 	//
@@ -85,7 +101,7 @@ static bool equalToLastAddress(const t_rounds *rounds, uint8_t roundI, uint8_t q
 			return true;
 		}
 	}
-	return true;
+	return false;
 }
 
 static void printProbe(uint8_t queriesPerHop, const t_rounds* rounds, uint8_t roundI, uint8_t queryI)
@@ -98,24 +114,34 @@ static void printProbe(uint8_t queriesPerHop, const t_rounds* rounds, uint8_t ro
 	//
 	if (queryI == 0)
 	{
-		printf("%2u  ", rounds[roundI].ttl);
+		printf("%2u  ", roundI + 1);
 	}
 
 	//
 	// Address
 	//
-	if (probe->status !=  TIMEOUT && !equalToLastAddress(rounds, roundI, queryI))
+	if (probe->status != TIMEOUT && !equalToLastAddress(rounds, roundI, queryI))
 	{
-		printf("%s ", probe->hopIpName);
-		return;
+		char reverseDns[NI_MAXHOST];
+		const char *resolvedName = getReverseDnsName(probe->hopIpName, reverseDns, sizeof(reverseDns));
+		if (strcmp(resolvedName, probe->hopIpName) != 0)
+			printf("%s (%s) ", resolvedName, probe->hopIpName);
+		else
+			printf("%s ", probe->hopIpName);
 	}
 
+	#ifdef DEBUG
+		printf("(%u) ", probe->status);
+	#endif
 	//
 	// Status (+ optional transport time)
 	//
 	char* status = NULL;
 	switch (probe->status)
 	{
+		case TIME_EXCEEDED:
+			printf("%6.3f ms ", transport);
+			break;
 		case NETWORK_UNREACHABLE:
 			status = "!N";
 			break;
@@ -150,15 +176,27 @@ static void printProbe(uint8_t queriesPerHop, const t_rounds* rounds, uint8_t ro
 	}
 }
 
-void updateOutput(const t_context *context)
+void updateOutput(const t_context *context, bool* noWait, bool* unreachRoundPrinted)
 {
+	*noWait = true;
+	*unreachRoundPrinted = false;
 	for (uint8_t i = gNext.roundI; i < context->options.maxHops; ++i)
 	{
 		for (uint8_t j = (i == gNext.roundI ? gNext.queryI : 0); j < context->options.queries; ++j)
 		{
 			t_probe* probe = &context->rounds[i].probes[j];
+			if (probe->status == PORT_UNREACHABLE)
+			{
+				if (j == context->options.queries - 1)
+				{
+					printProbe(context->options.queries, context->rounds, i, j);
+					*unreachRoundPrinted = true;
+					return;
+				}
+			}
 			if (probe->status == WAITING_TO_SEND || probe->status == WAITING_FOR_REPLY)
 			{
+				*noWait = false;
 				return;
 			}
 
@@ -167,4 +205,10 @@ void updateOutput(const t_context *context)
 			gNext.queryI = (j == context->options.queries - 1) ? 0 : j + 1;
 		}
 	}
+}
+
+void outputHeader(const t_context *context)
+{
+	printf("traceroute to %s (%s), %u hops max, %lu byte packets\n",
+		context->host.name, context->host.ipName, context->options.maxHops, 32 + sizeof(struct ip) + sizeof(struct udphdr));
 }

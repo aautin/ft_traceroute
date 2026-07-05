@@ -38,8 +38,8 @@ uint64_t getWaitingForReplyNumber(t_rounds *rounds, t_options options)
 
 struct timeval getTimeout(const t_options options, t_rounds *rounds, uint8_t roundI)
 {
-	struct timeval hereRtt;
-	struct timeval nearRtt;
+	struct timeval hereRtt = {0};
+	struct timeval nearRtt = {0};
 
 	for (uint8_t j = 0; j < options.queries; ++j)
 	{
@@ -106,4 +106,11 @@ struct timeval getTimeout(const t_options options, t_rounds *rounds, uint8_t rou
 	#endif
 
 	return timeout;
+}
+
+bool isTimeout(struct timeval now, struct timeval sendTime, struct timeval timeout)
+{
+	struct timeval elapsed;
+	timersub(&now, &sendTime, &elapsed);
+	return timercmp(&elapsed, &timeout, >);
 }

@@ -99,12 +99,14 @@ void argumentTooBigError(char *option, long limit);
 bool isOutputUpdated(const t_rounds *rounds, const t_options options);
 void announceHelp();
 void announceOptions(t_options *options);
-void updateOutput(const t_context *context);
+void updateOutput(const t_context *context, bool* noWait, bool* unreachRoundPrinted);
+void outputHeader(const t_context *context);
 
 // Utils
 struct timeval timeval_mul(struct timeval tv, double factor);
 uint64_t       getWaitingForReplyNumber(t_rounds *rounds, t_options options);
 struct timeval getTimeout(const t_options options, t_rounds *rounds, uint8_t roundI);
+bool           isTimeout(struct timeval now, struct timeval sendTime, struct timeval timeout);
 
 // Packet
 void readReplies(t_context *context);

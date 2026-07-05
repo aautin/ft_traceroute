@@ -111,7 +111,7 @@ int initOptions(t_options *options, int argc, char **argv)
 					argumentTooBigError(argv[optind - 2], 10);
 				}
 	
-				options->maxHops = (uint8_t)value;
+				options->queries = (uint8_t)value;
 				break;
 			}
 			case 'w':
@@ -281,6 +281,14 @@ void initSockets(t_context *context)
 		fatalError("icmp socket()");
 		exit(EXIT_FAILURE);
 	}
+
+	//
+	// Set a timeout of 0.1 ms for the ICMP socket to avoid blocking recvfrom
+	//
+	struct timeval tv;
+	tv.tv_sec = 0;
+	tv.tv_usec = 100;
+	setsockopt(context->icmpSocket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 }
 
 void initProbes(t_rounds **rounds, t_options *options)
