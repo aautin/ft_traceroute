@@ -31,6 +31,34 @@ static void applyTimeouts(t_context *context)
 	}
 }
 
+/// @brief True if there is no waiting probe or if we have reached the destination
+///        for a whole round and there is no waiting probe in the previous rounds
+static bool isFinished(const t_context* context)
+{
+	bool hasReachedDestination = false;
+
+	for (uint8_t i = 0; i < context->options.maxHops; ++i)
+	{
+		for (uint8_t j = 0; j < context->options.queries; ++j)
+		{
+			if (context->rounds[i].probes[j].status == PORT_UNREACHABLE)
+			{
+				hasReachedDestination = true;
+			}
+			
+			if (context->rounds[i].probes[j].status == WAITING_FOR_REPLY || context->rounds[i].probes[j].status == WAITING_TO_SEND)
+			{
+				return false;
+			}
+		}
+		if (hasReachedDestination)
+		{
+			return true;
+		}
+	}
+	return true;
+}
+
 static void traceroute(t_context *context)
 {
 	uint32_t nextProbeIndex = 0;
@@ -40,7 +68,7 @@ static void traceroute(t_context *context)
 		applyTimeouts(context);
 		updateOutput(context);
 
-		if (isFinished(context->rounds, context->options) && isOutputUpdated(context->rounds, context->options))
+		if (isFinished(context) && isOutputUpdated(context->rounds, context->options))
 		{
 			break;
 		}
@@ -52,7 +80,6 @@ static void traceroute(t_context *context)
 		while (waitingForReply < context->options.simQueries)
 		{
 			sendNextProbe(context, nextProbeIndex);
-			nextProbeIndex++;
 		}
 	}
 }
